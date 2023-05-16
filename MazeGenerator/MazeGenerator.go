@@ -3,8 +3,10 @@ package mazeGenerator
 import (
 	astar "course-work/AStar"
 	"fmt"
+	"log"
 	"math"
 	"math/rand"
+	"os"
 	"time"
 )
 
@@ -42,6 +44,13 @@ func NewMazeGenerator(rows, columns, startRow, startCol, finishRow, finishCol in
 }
 
 func (mg *MazeGenerator) GenerateMaze() Maze {
+	for i, _ := range mg.Maze {
+		for j, _ := range mg.Maze[i] {
+			mg.Maze[i][j] = '#'
+			mg.visited[i][j] = false
+		}
+
+	}
 	mg.Maze[mg.startRow][mg.startCol] = ' '
 	mg.visited[mg.startRow][mg.startCol] = true
 
@@ -61,7 +70,14 @@ func (mg *MazeGenerator) GenerateMaze() Maze {
 	mg.Maze[mg.startRow][mg.startCol] = ' '
 	mg.Maze[mg.finishRow][mg.finishCol] = ' '
 
-	return mg.Maze
+	start := astar.Node{mg.startRow, mg.startCol}
+	dest := astar.Node{mg.finishRow, mg.finishCol}
+	pair := astar.FindPath(mg.Maze, start, dest, Distance, Distance)
+	if pair.Path != nil {
+		return mg.Maze
+	} else {
+		return mg.GenerateMaze()
+	}
 }
 
 func (mg *MazeGenerator) recursiveBacktracking(row, col int) {
@@ -69,25 +85,44 @@ func (mg *MazeGenerator) recursiveBacktracking(row, col int) {
 	rand.Shuffle(len(directions), func(i, j int) {
 		directions[i], directions[j] = directions[j], directions[i]
 	})
-
+	//if rand.Int() < 50 {
+	//	mg.Maze[row][col] = ' '
+	//} else {
+	//	mg.Maze[row][col] = '#'
+	//}
+	//mg.visited[row][col] = true
+	//newRow := row + dir[0]*2
+	//newCol := col + dir[1]*2
 	mg.visited[row][col] = true
 
-	for _, dir := range directions {
-		newRow := row + dir[0]*2
-		newCol := col + dir[1]*2
+	for i, dir := range directions {
+		nextRow := row + dir[0]
+		nextCol := col + dir[1]
 
-		if mg.isValidCell(newRow, newCol) && !mg.visited[newRow][newCol] {
-			mg.Maze[newRow][newCol] = ' '
-			mg.Maze[row+dir[0]][col+dir[1]] = ' '
-			if newRow != mg.rows-1 && newCol != mg.columns-1 {
-				mg.recursiveBacktracking(newRow, newCol)
+		if mg.isValidCell(nextRow, nextCol) && !mg.visited[nextRow][nextCol] {
+			//if rand.Intn(3) < 2 {
+			//	mg.Maze[nextRow][nextCol] = ' '
+			//} else {
+			//	mg.Maze[nextRow][nextCol] = '#'
+			//}
+			if i < len(directions)/2 ||
+				(nextRow == mg.finishRow-1 && nextCol == mg.finishCol) ||
+				(nextRow == mg.startRow+1 && nextCol == mg.startCol) {
+				mg.Maze[nextRow][nextCol] = ' '
+			} else {
+				mg.Maze[nextRow][nextCol] = '#'
 			}
+			//mg.Maze[newRow][newCol] = ' '
+			//mg.Maze[row+dir[0]][col+dir[1]] = ' '
+			//if newRow != mg.rows-1 && newCol != mg.columns-1 {
+			mg.recursiveBacktracking(nextRow, nextCol)
+			//}
 		}
 	}
 }
 
 func (mg *MazeGenerator) isValidCell(row, col int) bool {
-	return row >= 0 && row < mg.rows && col >= 0 && col < mg.columns
+	return row >= 1 && row < mg.rows-1 && col >= 1 && col < mg.columns-1
 }
 
 //func (mg *MazeGenerator) PrintMaze() {
@@ -145,5 +180,22 @@ func (f Maze) Print() {
 			fmt.Print(string(c))
 		}
 		fmt.Println()
+	}
+}
+
+func (f Maze) WriteToFile(fileName string) {
+	file, err := os.Create(fileName)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer file.Close()
+
+	for _, row := range f {
+		for _, c := range row {
+			file.WriteString(string(c))
+		}
+		file.WriteString("\n")
 	}
 }
