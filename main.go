@@ -36,7 +36,7 @@ func main() {
 			pairs[i] = astar.FindPath(graphs[i], start[i], dest[i], mazeGenerator.Distance, mazeGenerator.Distance)
 		}
 	} else {
-		pairs = astar.FindPaths(graphs, start, dest, mazeGenerator.Distance, mazeGenerator.Distance)
+		pairs = astar.FindPaths(graphs, start, dest, mazeGenerator.Distance, mazeGenerator.Distance, 8)
 	}
 	endTime := time.Now().UnixNano()
 	fmt.Println(float64(endTime-startTime) / 100000000)

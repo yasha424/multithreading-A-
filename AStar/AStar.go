@@ -82,16 +82,40 @@ func FindPath(g Graph, start, dest Node, d, h CostFunc) Pair {
 	return Pair{nil, 0}
 }
 
-func FindPaths(g Graphs, start, dest []Node, d, h CostFunc) []Pair {
+func FindPaths(g Graphs, start, dest []Node, d, h CostFunc, threadsNum int) []Pair {
 	paths := make([]Pair, len(g))
-	var wg sync.WaitGroup
-	wg.Add(len(g))
-	for i := range g {
-		go func(i int) {
-			paths[i] = FindPath(g[i], start[i], dest[i], d, h)
-			wg.Done()
-		}(i)
+	//wg.Add(len(g))
+	for i := 0; i < len(g)/threadsNum; i++ {
+		if i == len(g)/threadsNum-1 {
+			var wg sync.WaitGroup
+			wg.Add(threadsNum)
+			for j := 0; j < threadsNum; j++ {
+				go func(i int) {
+					paths[i] = FindPath(g[i], start[i], dest[i], d, h)
+					wg.Done()
+				}(i*threadsNum + j)
+			}
+			wg.Wait()
+
+			wg.Add(len(g) - i*threadsNum)
+			for j := i * threadsNum; j < len(g); j++ {
+				go func(i int) {
+					paths[i] = FindPath(g[i], start[i], dest[i], d, h)
+					wg.Done()
+				}(j)
+			}
+		} else {
+			var wg sync.WaitGroup
+			wg.Add(threadsNum)
+			for j := 0; j < threadsNum; j++ {
+				go func(i int) {
+					paths[i] = FindPath(g[i], start[i], dest[i], d, h)
+					wg.Done()
+				}(i*threadsNum + j)
+			}
+			wg.Wait()
+		}
 	}
-	wg.Wait()
+	//wg.Wait()
 	return paths
 }
