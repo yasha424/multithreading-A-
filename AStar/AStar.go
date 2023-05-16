@@ -3,6 +3,7 @@ package astar
 import (
 	"container/heap"
 	pqueue "course-work/PriorityQueue"
+	"sync"
 )
 
 type Node struct {
@@ -17,6 +18,8 @@ func (node Node) Add(n Node) Node {
 type Graph interface {
 	Neighbours(node Node) []Node
 }
+
+type Graphs []Graph
 
 type CostFunc func(a, b Node) float64
 
@@ -77,4 +80,18 @@ func FindPath(g Graph, start, dest Node, d, h CostFunc) Pair {
 	}
 
 	return Pair{nil, 0}
+}
+
+func FindPaths(g Graphs, start, dest []Node, d, h CostFunc) []Pair {
+	paths := make([]Pair, len(g))
+	var wg sync.WaitGroup
+	wg.Add(len(g))
+	for i := range g {
+		go func(i int) {
+			paths[i] = FindPath(g[i], start[i], dest[i], d, h)
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+	return paths
 }
