@@ -151,6 +151,28 @@ func (f Maze) Put(node astar.Node, c rune) {
 	f[node.X][node.Y] = c
 }
 
+func (f Maze) Equals(m Maze) bool {
+	if len(m) == len(f) {
+		if len(m) == 0 {
+			return true
+		} else {
+			for i := 0; i < len(m); i++ {
+				if len(m[i]) != len(f[i]) {
+					return false
+				}
+				for j := 0; j < len(m[i]); j++ {
+					if m[i][j] != f[i][j] {
+						return false
+					}
+				}
+			}
+			return true
+		}
+	} else {
+		return false
+	}
+}
+
 func (f Maze) Print() {
 	for _, row := range f {
 		for _, c := range row {

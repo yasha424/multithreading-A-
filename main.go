@@ -10,7 +10,7 @@ import (
 
 func main() {
 	//divideGraphTest(1000, 50)
-	divideGraphTestAvg(500, 50, 10)
+	divideGraphTestAvg(1000, 4, 5)
 	//concurrentPriorityEvaluation(1000)
 }
 
@@ -23,6 +23,8 @@ func divideGraphTestAvg(sizeOfMaze, threadsNum, iterationsNum int) {
 		dest := make([]astar.Node, threadsNum)
 		graphs := make([]astar.Graph, threadsNum)
 		mazes := make([]mazeGenerator.Maze, threadsNum)
+		serialPaths := make([]astar.Pair, threadsNum)
+		//concurrentPaths := make([]astar.Pair, threadsNum)
 
 		destY := 1
 		for j := 0; j < threadsNum; j++ {
@@ -38,11 +40,11 @@ func divideGraphTestAvg(sizeOfMaze, threadsNum, iterationsNum int) {
 		}
 
 		newMaze := make(mazeGenerator.Maze, sizeOfMaze)
-		for i, maze := range mazes {
-			for j, row := range maze {
-				newMaze[i*len(maze)+j] = make([]rune, sizeOfMaze)
-				for k, c := range row {
-					newMaze[i*len(maze)+j][k] = c
+		for j, maze := range mazes {
+			for k, row := range maze {
+				newMaze[j*len(maze)+k] = make([]rune, sizeOfMaze)
+				for l, c := range row {
+					newMaze[j*len(maze)+k][l] = c
 				}
 			}
 		}
@@ -51,13 +53,18 @@ func divideGraphTestAvg(sizeOfMaze, threadsNum, iterationsNum int) {
 
 		serialStartTime := time.Now().UnixNano()
 		for j := 0; j < threadsNum; j++ {
-			astar.FindPath(mazes[j], start[j], dest[j], mazeGenerator.ManhattanDistance, mazeGenerator.ManhattanDistance)
+			serialPaths[j] = astar.FindPath(mazes[j], start[j], dest[j], mazeGenerator.ManhattanDistance, mazeGenerator.ManhattanDistance)
 		}
 		serialTimeSum += float64(time.Now().UnixNano() - serialStartTime)
 
 		concurrentStartTime := time.Now().UnixNano()
-		astar.FindPaths(graphs, start, dest, mazeGenerator.ManhattanDistance, mazeGenerator.ManhattanDistance, threadsNum)
+		concurrentPaths := astar.FindPaths(graphs, start, dest, mazeGenerator.ManhattanDistance, mazeGenerator.ManhattanDistance, threadsNum)
 		concurrentTimeSum += float64(time.Now().UnixNano() - concurrentStartTime)
+		for j := range concurrentPaths {
+			if !concurrentPaths[j].Path.Equals(serialPaths[j].Path) {
+				fmt.Println("Not equal!!!")
+			}
+		}
 	}
 	fmt.Println("Average concurrent execution time:", concurrentTimeSum/float64(iterationsNum)/1_000_000_000)
 	fmt.Println("Average serial execution time:", serialTimeSum/float64(iterationsNum)/1_000_000_000)

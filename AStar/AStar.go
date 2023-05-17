@@ -11,6 +11,10 @@ type Node struct {
 	Y int
 }
 
+func (node Node) Equals(tn Node) bool {
+	return node.X == tn.X && node.Y == tn.Y
+}
+
 func (node Node) Add(n Node) Node {
 	return Node{node.X + n.X, node.Y + n.Y}
 }
@@ -29,6 +33,19 @@ type Pair struct {
 }
 
 type Path []Node
+
+func (p Path) Equals(tp Path) bool {
+	if len(p) != len(tp) {
+		return false
+	}
+	for i := range p {
+		if !p[i].Equals(tp[i]) {
+			return false
+		}
+	}
+
+	return true
+}
 
 func NewPath(start Node) Path {
 	return []Node{start}
