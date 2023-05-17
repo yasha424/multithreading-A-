@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	divideGraph(1000, 10)
+	divideGraph(1000, 100)
 	//return
 	//concurrentPriorityEvaluation(1000)
 }
