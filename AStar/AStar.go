@@ -95,7 +95,6 @@ func FindPaths(g Graphs, start, dest []Node, d, h CostFunc, threadsNum int) []Pa
 					wg.Done()
 				}(i*threadsNum + j)
 			}
-			wg.Wait()
 
 			wg.Add(len(g) - (i*threadsNum + threadsNum))
 			for j := i*threadsNum + threadsNum; j < len(g); j++ {
@@ -104,10 +103,8 @@ func FindPaths(g Graphs, start, dest []Node, d, h CostFunc, threadsNum int) []Pa
 					wg.Done()
 				}(j)
 			}
-			wg.Wait()
 
 		} else {
-			//var wg sync.WaitGroup
 			wg.Add(threadsNum)
 			for j := 0; j < threadsNum; j++ {
 				go func(i int) {
@@ -158,8 +155,7 @@ func FindPathWithConcurrentPriorityEvaluation(g Graph, start, dest Node, d, h Co
 				}
 			}(nb)
 		}
-		//close(pairChan)
-		//println(1)
+
 		for range neighbours {
 			pair := <-pairChan
 			heap.Push(pq, &pqueue.Item[Path]{

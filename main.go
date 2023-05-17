@@ -9,12 +9,62 @@ import (
 )
 
 func main() {
-	divideGraph(1000, 100)
-	//return
+	//divideGraphTest(500, 2)
+	divideGraphTestAvg(500, 50, 10)
 	//concurrentPriorityEvaluation(1000)
 }
 
-func divideGraph(sizeOfMaze, threadsNum int) {
+func divideGraphTestAvg(sizeOfMaze, threadsNum, iterationsNum int) {
+	concurrentTimeSum := 0.0
+	serialTimeSum := 0.0
+
+	for i := 0; i < iterationsNum; i++ {
+		start := make([]astar.Node, threadsNum)
+		dest := make([]astar.Node, threadsNum)
+		graphs := make([]astar.Graph, threadsNum)
+		mazes := make([]mazeGenerator.Maze, threadsNum)
+
+		destY := 1
+		for j := 0; j < threadsNum; j++ {
+
+			start[j] = astar.Node{X: 0, Y: destY}
+			destY = 1 + rand.Intn(sizeOfMaze-2)
+			dest[j] = astar.Node{X: sizeOfMaze/threadsNum - 1, Y: destY}
+
+			mg := mazeGenerator.NewMazeGenerator(sizeOfMaze/threadsNum, sizeOfMaze, start[j].X, start[j].Y, dest[j].X, dest[j].Y)
+			maze := mg.GenerateMaze()
+			graphs[j] = maze
+			mazes[j] = maze
+		}
+
+		newMaze := make(mazeGenerator.Maze, sizeOfMaze)
+		for i, maze := range mazes {
+			for j, row := range maze {
+				newMaze[i*len(maze)+j] = make([]rune, sizeOfMaze)
+				for k, c := range row {
+					newMaze[i*len(maze)+j][k] = c
+				}
+			}
+		}
+
+		fmt.Println("Starting search", i)
+
+		serialStartTime := time.Now().UnixNano()
+		for j := 0; j < threadsNum; j++ {
+			astar.FindPath(mazes[j], start[j], dest[j], mazeGenerator.Distance, mazeGenerator.Distance)
+		}
+		serialTimeSum += float64(time.Now().UnixNano() - serialStartTime)
+
+		concurrentStartTime := time.Now().UnixNano()
+		astar.FindPaths(graphs, start, dest, mazeGenerator.Distance, mazeGenerator.Distance, threadsNum)
+		concurrentTimeSum += float64(time.Now().UnixNano() - concurrentStartTime)
+	}
+	fmt.Println("Average concurrent execution time:", concurrentTimeSum/float64(iterationsNum)/1_000_000_000)
+	fmt.Println("Average serial execution time:", serialTimeSum/float64(iterationsNum)/1_000_000_000)
+	fmt.Println("Average speedup:", serialTimeSum/concurrentTimeSum)
+}
+
+func divideGraphTest(sizeOfMaze, threadsNum int) {
 	start := make([]astar.Node, threadsNum)
 	dest := make([]astar.Node, threadsNum)
 	graphs := make([]astar.Graph, threadsNum)
@@ -24,7 +74,7 @@ func divideGraph(sizeOfMaze, threadsNum int) {
 	for i := 0; i < threadsNum; i++ {
 
 		start[i] = astar.Node{X: 0, Y: destY}
-		destY = rand.Intn(sizeOfMaze)
+		destY = 1 + rand.Intn(sizeOfMaze-2)
 		dest[i] = astar.Node{X: sizeOfMaze/threadsNum - 1, Y: destY}
 
 		mg := mazeGenerator.NewMazeGenerator(sizeOfMaze/threadsNum, sizeOfMaze, start[i].X, start[i].Y, dest[i].X, dest[i].Y)
@@ -46,8 +96,9 @@ func divideGraph(sizeOfMaze, threadsNum int) {
 		}
 	}
 
-	serialStartTime := time.Now().UnixNano()
+	fmt.Println("Starting search...")
 
+	serialStartTime := time.Now().UnixNano()
 	for i := 0; i < threadsNum; i++ {
 		serialPairs[i] = astar.FindPath(mazes[i], start[i], dest[i], mazeGenerator.Distance, mazeGenerator.Distance)
 	}
