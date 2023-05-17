@@ -5,13 +5,54 @@ import (
 	mazeGenerator "course-work/MazeGenerator"
 	"fmt"
 	"math/rand"
-	"os"
 	"time"
 )
 
 func main() {
-	threadsNum := 2
-	sizeOfMaze := 1000
+	//divideGraph(800, 8)
+	//return
+
+	sizeOfMaze := 500
+	start := astar.Node{Y: 1}
+
+	dest := astar.Node{X: sizeOfMaze - 1, Y: rand.Intn(sizeOfMaze)}
+	mg := mazeGenerator.NewMazeGenerator(sizeOfMaze, sizeOfMaze, start.X, start.Y, dest.X, dest.Y)
+	concurrentMaze := mg.GenerateMaze()
+	concurrentStart := time.Now().UnixNano()
+	concurrentPair := astar.FindPathWithConcurrentPriorityEvaluation(concurrentMaze, start, dest, mazeGenerator.Distance, mazeGenerator.Distance)
+	concurrentTime := float64(time.Now().UnixNano() - concurrentStart)
+	fmt.Println("Concurrent execution time:", concurrentTime/1_000_000_000)
+
+	serialMaze := make(mazeGenerator.Maze, sizeOfMaze)
+
+	for i, row := range concurrentMaze {
+		serialMaze[i] = make([]rune, sizeOfMaze)
+		for j, c := range row {
+			serialMaze[i][j] = c
+		}
+	}
+
+	serialStart := time.Now().UnixNano()
+	serialPair := astar.FindPath(serialMaze, start, dest, mazeGenerator.Distance, mazeGenerator.Distance)
+	serialTime := float64(time.Now().UnixNano() - serialStart)
+	fmt.Println("Serial execution time:", serialTime/1_000_000_000)
+
+	for _, node := range concurrentPair.Path {
+		concurrentMaze.Put(node, '.')
+	}
+	fmt.Println("Concurrent cost:", concurrentPair.Cost)
+
+	concurrentMaze.WriteToFile("concurrentNodePath.txt")
+
+	for _, node := range serialPair.Path {
+		serialMaze.Put(node, '.')
+	}
+	fmt.Println("Serial cost:", serialPair.Cost)
+
+	serialMaze.WriteToFile("serialPath.txt")
+}
+
+func divideGraph(sizeOfMaze, threadsNum int) {
 	start := make([]astar.Node, threadsNum)
 	dest := make([]astar.Node, threadsNum)
 	graphs := make([]astar.Graph, threadsNum)
@@ -30,63 +71,58 @@ func main() {
 		mazes[i] = maze
 	}
 
-	pairs := make([]astar.Pair, threadsNum)
+	serialPairs := make([]astar.Pair, threadsNum)
+	concurrentPairs := make([]astar.Pair, threadsNum)
 
 	newMaze := make(mazeGenerator.Maze, sizeOfMaze)
 	for i, maze := range mazes {
 		for j, row := range maze {
 			newMaze[i*len(maze)+j] = make([]rune, sizeOfMaze)
-			newMaze[i*len(maze)+j] = row
+			for k, c := range row {
+				newMaze[i*len(maze)+j][k] = c
+			}
 		}
 	}
 
 	serialStartTime := time.Now().UnixNano()
 	//newMaze.Print()
-	//for i := 0; i < threadsNum; i++ {
 	fmt.Println("start")
-	serialPair := astar.FindPath(newMaze, start[0], dest[threadsNum-1], mazeGenerator.Distance, mazeGenerator.Distance)
-	//}
-	serialEndTime := time.Now().UnixNano()
-	fmt.Println("Serial execution time:", float64(serialEndTime-serialStartTime)/1_000_000_000)
+	for i := 0; i < threadsNum; i++ {
+		serialPairs[i] = astar.FindPath(mazes[i], start[i], dest[i], mazeGenerator.Distance, mazeGenerator.Distance)
+	}
+	serialTime := float64(time.Now().UnixNano() - serialStartTime)
+	fmt.Println("Serial execution time:", serialTime/1_000_000_000)
 
 	concurrentStartTime := time.Now().UnixNano()
-	pairs = astar.FindPaths(graphs, start, dest, mazeGenerator.Distance, mazeGenerator.Distance, threadsNum)
-	concurrentEndTime := time.Now().UnixNano()
-	fmt.Println("Concurrent execution time:", float64(concurrentEndTime-concurrentStartTime)/1_000_000_000)
+	concurrentPairs = astar.FindPaths(graphs, start, dest, mazeGenerator.Distance, mazeGenerator.Distance, threadsNum)
+	concurrentTime := float64(time.Now().UnixNano() - concurrentStartTime)
+	fmt.Println("Concurrent execution time:", concurrentTime/1_000_000_000)
 
-	fileName := "path.txt"
-	file, _ := os.Create(fileName)
-	defer file.Close()
-
+	concurrentCost := 0
+	serialCost := 0
 	for i := 0; i < threadsNum; i++ {
-		for _, c := range pairs[i].Path {
-			mazes[i].Put(c, '.')
-		}
+		concurrentCost += concurrentPairs[i].Cost
+		serialCost += serialPairs[i].Cost
+	}
+	fmt.Println("Concurrent cost:", concurrentCost)
+	fmt.Println("Concurrent cost:", serialCost)
 
-		for _, row := range mazes[i] {
-			for _, c := range row {
-				file.WriteString(string(c))
-			}
-			file.WriteString("\n")
+	fmt.Println("Speedup:", serialTime/concurrentTime)
+	serialMazes := mazes
+
+	for i, pair := range concurrentPairs {
+		for _, node := range pair.Path {
+			mazes[i].Put(node, '.')
 		}
 	}
-	file.Close()
 
-	fileName = "serialPath.txt"
-	file, _ = os.Create(fileName)
-	defer file.Close()
+	mazeGenerator.WriteToFile("concurrentPath.txt", mazes)
 
-	//for i := 0; i < threadsNum; i++ {
-	for _, c := range serialPair.Path {
-		newMaze.Put(c, '.')
-	}
-
-	for _, row := range newMaze {
-		for _, c := range row {
-			file.WriteString(string(c))
+	for i, pair := range serialPairs {
+		for _, node := range pair.Path {
+			serialMazes[i].Put(node, '.')
 		}
-		file.WriteString("\n")
 	}
-	//}
 
+	mazeGenerator.WriteToFile("serialPath.txt", serialMazes)
 }

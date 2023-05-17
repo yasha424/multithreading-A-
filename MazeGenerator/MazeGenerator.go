@@ -178,3 +178,17 @@ func (f Maze) WriteToFile(fileName string) {
 		}
 	}
 }
+
+func WriteToFile(fileName string, mazes []Maze) {
+	file, _ := os.Create(fileName)
+	defer file.Close()
+
+	for _, maze := range mazes {
+		for _, row := range maze {
+			for _, c := range row {
+				file.WriteString(string(c))
+			}
+			file.WriteString("\n")
+		}
+	}
+}
