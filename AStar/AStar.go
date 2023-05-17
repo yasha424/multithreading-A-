@@ -85,14 +85,12 @@ func FindPath(g Graph, start, dest Node, d, h CostFunc) Pair {
 func FindPaths(g Graphs, start, dest []Node, d, h CostFunc, threadsNum int) []Pair {
 	paths := make([]Pair, len(g))
 
-	//var wg sync.WaitGroup
 	for i := 0; i < len(g)/threadsNum; i++ {
 		if i == len(g)/threadsNum-1 && float32(len(g))/float32(threadsNum) != float32(len(g)/threadsNum) {
 			var wg sync.WaitGroup
 			wg.Add(threadsNum)
 			for j := 0; j < threadsNum; j++ {
 				go func(i int) {
-					//println("last", i)
 					paths[i] = FindPath(g[i], start[i], dest[i], d, h)
 					wg.Done()
 				}(i*threadsNum + j)
@@ -102,7 +100,6 @@ func FindPaths(g Graphs, start, dest []Node, d, h CostFunc, threadsNum int) []Pa
 			wg.Add(len(g) - (i*threadsNum + threadsNum))
 			for j := i*threadsNum + threadsNum; j < len(g); j++ {
 				go func(i int) {
-					//println("last off", i)
 					paths[i] = FindPath(g[i], start[i], dest[i], d, h)
 					wg.Done()
 				}(j)
@@ -114,7 +111,6 @@ func FindPaths(g Graphs, start, dest []Node, d, h CostFunc, threadsNum int) []Pa
 			wg.Add(threadsNum)
 			for j := 0; j < threadsNum; j++ {
 				go func(i int) {
-					//println(i)
 					paths[i] = FindPath(g[i], start[i], dest[i], d, h)
 					wg.Done()
 				}(i*threadsNum + j)
@@ -122,7 +118,6 @@ func FindPaths(g Graphs, start, dest []Node, d, h CostFunc, threadsNum int) []Pa
 			wg.Wait()
 		}
 	}
-	//wg.Wait()
 	return paths
 }
 
@@ -144,35 +139,34 @@ func FindPathWithConcurrentPriorityEvaluation(g Graph, start, dest Node, d, h Co
 		}
 		closed[n] = true
 
-		//var wg sync.WaitGroup
-		//var mutex sync.Mutex
 		neighbours := g.Neighbours(n)
-		//println(len(neighbours))
-		priorityChan := make(chan float64, len(neighbours))
-		pathChan := make(chan Path, len(neighbours))
-		println(len(neighbours))
-		//var wg sync.WaitGroup
-		//wg.Add(len(neighbours))
-		for _, nb := range neighbours {
-			newPath := p.Value.Cont(n)
-			func(n Node, path Path, priorityChan chan float64, pathChan chan Path) {
-				println(path.Cost(d) + h(n, dest))
-				priorityChan <- path.Cost(d) + h(n, dest)
-				pathChan <- path
-				//wg.Done()
-			}(nb, newPath, priorityChan, pathChan)
+
+		type Pair struct {
+			priority float64
+			path     Path
 		}
-		//wg.Wait()
+
+		pairChan := make(chan Pair, len(neighbours))
+
+		for _, nb := range neighbours {
+			go func(n Node) {
+				newPath := p.Value.Cont(n)
+
+				pairChan <- Pair{
+					priority: newPath.Cost(d) + h(n, dest),
+					path:     newPath,
+				}
+			}(nb)
+		}
+		//close(pairChan)
+		//println(1)
 		for range neighbours {
-			prior := <-priorityChan
-			println(prior)
+			pair := <-pairChan
 			heap.Push(pq, &pqueue.Item[Path]{
-				Value:    <-pathChan,
-				Priority: prior,
+				Value:    pair.path,
+				Priority: pair.priority,
 			})
 		}
-		println(pq.Len())
-
 	}
 
 	return Pair{nil, 0}

@@ -115,6 +115,10 @@ func Distance(p, q astar.Node) float64 {
 	return math.Abs(float64(p.X-q.X)) + math.Abs(float64(p.Y-q.Y))
 }
 
+func EuclidianDistance(p, q astar.Node) float64 {
+	return math.Sqrt(math.Pow(float64(p.X-q.X), 2) + math.Pow(float64(p.Y-q.Y), 2))
+}
+
 type Maze [][]rune
 
 func (f Maze) Neighbours(node astar.Node) []astar.Node {
