@@ -72,7 +72,7 @@ func (mg *MazeGenerator) GenerateMaze() Maze {
 
 	start := astar.Node{X: mg.startRow, Y: mg.startCol}
 	dest := astar.Node{X: mg.finishRow, Y: mg.finishCol}
-	pair := astar.FindPath(mg.Maze, start, dest, Distance, Distance)
+	pair := astar.FindPath(mg.Maze, start, dest, ManhattanDistance, ManhattanDistance)
 
 	if pair.Path != nil {
 		return mg.Maze
@@ -111,7 +111,7 @@ func (mg *MazeGenerator) isValidCell(row, col int) bool {
 	return row >= 1 && row < mg.rows-1 && col >= 1 && col < mg.columns-1
 }
 
-func Distance(p, q astar.Node) float64 {
+func ManhattanDistance(p, q astar.Node) float64 {
 	return math.Abs(float64(p.X-q.X)) + math.Abs(float64(p.Y-q.Y))
 }
 
