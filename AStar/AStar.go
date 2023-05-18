@@ -23,8 +23,6 @@ type Graph interface {
 	Neighbours(node Node) []Node
 }
 
-type Graphs []Graph
-
 type CostFunc func(a, b Node) float64
 
 type Pair struct {
@@ -99,7 +97,7 @@ func FindPath(g Graph, start, dest Node, d, h CostFunc) Pair {
 	return Pair{nil, 0}
 }
 
-func FindPaths(g Graphs, start, dest []Node, d, h CostFunc, threadsNum int) []Pair {
+func FindPaths(g []Graph, start, dest []Node, d, h CostFunc, threadsNum int) []Pair {
 	paths := make([]Pair, len(g))
 
 	var wg sync.WaitGroup
