@@ -86,11 +86,13 @@ func FindPath(g Graph, start, dest Node, d, h CostFunc) Pair {
 		closed[n] = true
 
 		for _, nb := range g.Neighbours(n) {
-			newPath := p.Value.Cont(nb)
-			heap.Push(pq, &pqueue.Item[Path]{
-				Value:    newPath,
-				Priority: newPath.Cost(d) + h(nb, dest),
-			})
+			if !closed[nb] {
+				newPath := p.Value.Cont(nb)
+				heap.Push(pq, &pqueue.Item[Path]{
+					Value:    newPath,
+					Priority: newPath.Cost(d) + h(nb, dest),
+				})
+			}
 		}
 	}
 

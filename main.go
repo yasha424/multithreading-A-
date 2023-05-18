@@ -9,8 +9,9 @@ import (
 )
 
 func main() {
-	//divideGraphTest(500, 50)
-	divideGraphTestAvg(500, 50, 10)
+	//serialSearch(1000)
+	//divideGraphTest(1000, 50)
+	divideGraphTestAvg(20, 2, 10)
 	//concurrentPriorityEvaluation(1000)
 }
 
@@ -66,8 +67,8 @@ func divideGraphTestAvg(sizeOfMaze, threadsNum, iterationsNum int) {
 			}
 		}
 	}
-	fmt.Println("Average concurrent execution time:", concurrentTimeSum/float64(iterationsNum)/1_000_000_000)
-	fmt.Println("Average serial execution time:", serialTimeSum/float64(iterationsNum)/1_000_000_000)
+	fmt.Println("Average concurrent execution time:", concurrentTimeSum/float64(iterationsNum), "ns")
+	fmt.Println("Average serial execution time:", serialTimeSum/float64(iterationsNum), "ns")
 	fmt.Println("Average speedup:", serialTimeSum/concurrentTimeSum)
 }
 
@@ -110,12 +111,12 @@ func divideGraphTest(sizeOfMaze, threadsNum int) {
 		serialPairs[i] = astar.FindPath(mazes[i], start[i], dest[i], mazeGenerator.ManhattanDistance, mazeGenerator.ManhattanDistance)
 	}
 	serialTime := float64(time.Now().UnixNano() - serialStartTime)
-	fmt.Println("Serial execution time:", serialTime/1_000_000_000)
+	fmt.Println("Serial execution time:", serialTime/1_000_000, "ms")
 
 	concurrentStartTime := time.Now().UnixNano()
 	concurrentPairs = astar.FindPaths(graphs, start, dest, mazeGenerator.ManhattanDistance, mazeGenerator.ManhattanDistance, threadsNum)
 	concurrentTime := float64(time.Now().UnixNano() - concurrentStartTime)
-	fmt.Println("Concurrent execution time:", concurrentTime/1_000_000_000)
+	fmt.Println("Concurrent execution time:", concurrentTime/1_000_000, "ms")
 
 	concurrentCost := 0
 	serialCost := 0
@@ -156,7 +157,7 @@ func concurrentPriorityEvaluation(sizeOfMaze int) {
 	concurrentStart := time.Now().UnixNano()
 	concurrentPair := astar.FindPathWithConcurrentPriorityEvaluation(concurrentMaze, start, dest, mazeGenerator.ManhattanDistance, mazeGenerator.EuclideanDistance)
 	concurrentTime := float64(time.Now().UnixNano() - concurrentStart)
-	fmt.Println("Concurrent execution time:", concurrentTime/1_000_000_000)
+	fmt.Println("Concurrent execution time:", concurrentTime, "ns")
 
 	serialMaze := make(mazeGenerator.Maze, sizeOfMaze)
 
@@ -170,7 +171,7 @@ func concurrentPriorityEvaluation(sizeOfMaze int) {
 	serialStart := time.Now().UnixNano()
 	serialPair := astar.FindPath(serialMaze, start, dest, mazeGenerator.ManhattanDistance, mazeGenerator.EuclideanDistance)
 	serialTime := float64(time.Now().UnixNano() - serialStart)
-	fmt.Println("Serial execution time:", serialTime/1_000_000_000)
+	fmt.Println("Serial execution time:", serialTime, "ns")
 
 	fmt.Println("Speedup:", serialTime/concurrentTime)
 
@@ -187,4 +188,22 @@ func concurrentPriorityEvaluation(sizeOfMaze int) {
 	fmt.Println("Serial cost:", serialPair.Cost)
 
 	serialMaze.WriteToFile("serialPath.txt")
+}
+
+func serialSearch(sizeOfMaze int) {
+	start := astar.Node{Y: 1}
+	end := astar.Node{X: sizeOfMaze - 1, Y: 1 + rand.Intn(sizeOfMaze-2)}
+	mg := mazeGenerator.NewMazeGenerator(sizeOfMaze, sizeOfMaze, start.X, start.Y, end.X, end.Y)
+	maze := mg.GenerateMaze()
+
+	fmt.Println("Starting search...")
+	startTime := time.Now().UnixNano()
+	pair := astar.FindPath(maze, start, end, mazeGenerator.ManhattanDistance, mazeGenerator.ManhattanDistance)
+	endTime := time.Now().UnixNano()
+	fmt.Println("Execution time:", float64(endTime-startTime), "ns")
+
+	for _, n := range pair.Path {
+		maze.Put(n, '.')
+	}
+	maze.WriteToFile("serialPath.txt")
 }
