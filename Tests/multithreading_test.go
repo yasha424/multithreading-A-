@@ -3,6 +3,7 @@ package Tests
 import (
 	astar "course-work/AStar"
 	mazeGenerator "course-work/MazeGenerator"
+	"fmt"
 	"math/rand"
 	"testing"
 )
@@ -13,6 +14,7 @@ func TestCompareConcurrentToSerial(t *testing.T) {
 	graphs := make([]astar.Graph, threadsNum)
 	starts := make([]astar.Node, threadsNum)
 	ends := make([]astar.Node, threadsNum)
+	cost := 0
 
 	for i := 0; i < threadsNum; i++ {
 		sizeOfMaze := 5
@@ -41,12 +43,14 @@ func TestCompareConcurrentToSerial(t *testing.T) {
 	}
 
 	for i, pair := range serialPairs {
+		cost += pair.Cost
 		for _, node := range pair.Path {
 			mazes[i].Put(node, '.')
 		}
 		mazes[i].Print()
 	}
-
+	cost += len(mazes) - 1
+	fmt.Println("Cost is:", cost)
 }
 
 func TestConcurrentNodeEval(t *testing.T) {
@@ -68,6 +72,7 @@ func TestConcurrentNodeEval(t *testing.T) {
 	}
 
 	maze.Print()
+	fmt.Println("Cost is:", pair.Cost)
 }
 
 func TestBidirectionalSearch(t *testing.T) {
@@ -92,6 +97,7 @@ func TestBidirectionalSearch(t *testing.T) {
 	}
 
 	maze.Print()
+	fmt.Println("Cost is:", path.Cost)
 
 	if path.Cost != 12 {
 		t.Error("Wrong path cost")

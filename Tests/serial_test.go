@@ -3,6 +3,7 @@ package Tests
 import (
 	astar "course-work/AStar"
 	mazeGenerator "course-work/MazeGenerator"
+	"fmt"
 	"math/rand"
 	"testing"
 )
@@ -37,6 +38,12 @@ func TestNoPathSearch(t *testing.T) {
 	if pair.Path != nil {
 		t.Error("Path found, but not exists")
 	}
+
+	for _, node := range pair.Path {
+		maze.Put(node, '.')
+	}
+
+	maze.Print()
 }
 
 func TestSearch(t *testing.T) {
@@ -59,4 +66,11 @@ func TestSearch(t *testing.T) {
 	if pair.Cost != 11 {
 		t.Error("Cost is not optimal")
 	}
+
+	for _, node := range pair.Path {
+		maze.Put(node, '.')
+	}
+
+	maze.Print()
+	fmt.Println("Cost is:", pair.Cost)
 }

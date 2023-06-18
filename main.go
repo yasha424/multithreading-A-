@@ -13,8 +13,8 @@ func main() {
 	//divideGraphTest(1000, 4)
 	//divideGraphTestAvg(800, 4, 10)
 	//concurrentPriorityEvaluation(1000)
-	bidirectionalSearch(500)
-	//bidirectionalSearchAvg(600, 5)
+	//bidirectionalSearch(500)
+	bidirectionalSearchAvg(1000, 10)
 }
 
 func bidirectionalSearchAvg(sizeOfMaze, iterationsNum int) {
@@ -49,8 +49,8 @@ func bidirectionalSearchAvg(sizeOfMaze, iterationsNum int) {
 		}
 	}
 
-	fmt.Println("Average concurrent execution time:", concurrentTimeSum/float64(iterationsNum), "ns")
-	fmt.Println("Average serial execution time:", serialTimeSum/float64(iterationsNum), "ns")
+	fmt.Println("Average concurrent execution time:", int(concurrentTimeSum/float64(iterationsNum)), "ns")
+	fmt.Println("Average serial execution time:", int(serialTimeSum/float64(iterationsNum)), "ns")
 	fmt.Println("Average speedup:", serialTimeSum/concurrentTimeSum)
 }
 
