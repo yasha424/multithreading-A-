@@ -3,6 +3,7 @@ package astar
 import (
 	"container/heap"
 	pqueue "course-work/PriorityQueue"
+	"math"
 	"sync"
 )
 
@@ -180,6 +181,86 @@ func FindPathWithConcurrentPriorityEvaluation(g Graph, start, dest Node, d, h Co
 				Priority: pair.priority,
 			})
 		}
+	}
+
+	return Pair{nil, 0}
+}
+
+func FindPathWithBidirectionalSearch(g Graph, start, dest Node, d, h CostFunc) Pair {
+	closed1 := make(map[Node]bool)
+	pq1 := &pqueue.PriorityQueue[Path]{}
+	heap.Init(pq1)
+	heap.Push(pq1, &pqueue.Item[Path]{Value: NewPath(start)})
+
+	closed2 := make(map[Node]bool)
+	pq2 := &pqueue.PriorityQueue[Path]{}
+	heap.Init(pq2)
+	heap.Push(pq2, &pqueue.Item[Path]{Value: NewPath(dest)})
+
+	var wg sync.WaitGroup
+
+	for pq1.Len() > 0 && pq2.Len() > 0 {
+
+		minLength := math.Abs(float64(dest.X-start.X)) + math.Abs(float64(dest.Y-start.Y))
+		forwardPath := pq1.First().(*pqueue.Item[Path])
+		backPath := pq2.First().(*pqueue.Item[Path])
+		if forwardPath.Value.Cost(d)+backPath.Value.Cost(d) >= minLength {
+			for i := len(backPath.Value) - 1; i >= 0; i-- {
+				if backPath.Value[i] == forwardPath.Value.Last() {
+					fullPath := forwardPath.Value
+					for index := i - 1; index >= 0; index-- {
+						fullPath = fullPath.Cont(backPath.Value[index])
+					}
+					return Pair{fullPath, int(fullPath.Cost(d))}
+				}
+			}
+		}
+
+		wg.Add(2)
+		go func() {
+			p := heap.Pop(pq1).(*pqueue.Item[Path])
+			n := p.Value.Last()
+			if closed1[n] {
+				wg.Done()
+				return
+			}
+			closed1[n] = true
+
+			for _, nb := range g.Neighbours(n) {
+				if !closed1[nb] {
+					newPath := p.Value.Cont(nb)
+					heap.Push(pq1, &pqueue.Item[Path]{
+						Value:    newPath,
+						Priority: newPath.Cost(d) + h(nb, dest),
+					})
+				}
+			}
+			wg.Done()
+		}()
+
+		go func() {
+			p := heap.Pop(pq2).(*pqueue.Item[Path])
+			n := p.Value.Last()
+			if closed2[n] {
+				wg.Done()
+				return
+			}
+
+			closed2[n] = true
+
+			for _, nb := range g.Neighbours(n) {
+				if !closed2[nb] {
+					newPath := p.Value.Cont(nb)
+					heap.Push(pq2, &pqueue.Item[Path]{
+						Value:    newPath,
+						Priority: newPath.Cost(d) + h(nb, start),
+					})
+				}
+			}
+			wg.Done()
+		}()
+
+		wg.Wait()
 	}
 
 	return Pair{nil, 0}

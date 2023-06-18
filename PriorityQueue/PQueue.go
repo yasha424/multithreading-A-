@@ -32,3 +32,8 @@ func (pq *PriorityQueue[T]) Pop() any {
 	*pq = old[0 : n-1]
 	return item
 }
+
+func (pq *PriorityQueue[T]) First() any {
+	queue := *pq
+	return queue[0]
+}
